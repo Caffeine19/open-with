@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 @main
-struct DefaultAppsManagerApp: App {
+struct OpenWithApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {

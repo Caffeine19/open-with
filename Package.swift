@@ -2,19 +2,19 @@
 import PackageDescription
 
 let package = Package(
-    name: "DefaultAppsManager",
+    name: "OpenWith",
     platforms: [
-        .macOS(.v13)
+        .macOS(.v14)
     ],
     products: [
         .executable(
-            name: "DefaultAppsManager",
-            targets: ["DefaultAppsManager"]
+            name: "OpenWith",
+            targets: ["OpenWith"]
         )
     ],
     targets: [
         .executableTarget(
-            name: "DefaultAppsManager",
+            name: "OpenWith",
             path: "Sources",
             resources: [
                 .process("../Resources/Assets.xcassets")

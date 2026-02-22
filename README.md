@@ -1,4 +1,4 @@
-# DefaultAppsManager
+# OpenWith
 
 A modern macOS SwiftUI application for managing default applications for URL schemes and file types.
 
@@ -20,7 +20,7 @@ A modern macOS SwiftUI application for managing default applications for URL sch
 ```
 Sources/
 ├── App/
-│   ├── DefaultAppsManagerApp.swift    # App entry point
+│   ├── OpenWithApp.swift              # App entry point
 │   └── ContentView.swift              # Main navigation view
 ├── Core/
 │   ├── LaunchServicesManager.swift    # Launch Services API wrapper
@@ -42,13 +42,13 @@ Sources/
 
 ```bash
 swift build
-swift run DefaultAppsManager
+swift run OpenWith
 ```
 
 ### Using Xcode
 
 1. Open `Package.swift` in Xcode
-2. Select the `DefaultAppsManager` scheme
+2. Select the `OpenWith` scheme
 3. Build and run (⌘R)
 
 ## Architecture

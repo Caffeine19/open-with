@@ -5,8 +5,8 @@ CONF=${1:-release}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
 
-APP_NAME="DefaultAppsManager"
-BUNDLE_ID="com.caffeinecat.defaultappsmanager"
+APP_NAME="OpenWith"
+BUNDLE_ID="com.caffeinecat.openwith"
 VERSION="1.0.0"
 BUILD_NUMBER="1"
 
@@ -61,7 +61,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleName</key>
     <string>${APP_NAME}</string>
     <key>CFBundleDisplayName</key>
-    <string>Default Apps Manager</string>
+    <string>OpenWith</string>
     <key>CFBundleIdentifier</key>
     <string>${BUNDLE_ID}</string>
     <key>CFBundleExecutable</key>
