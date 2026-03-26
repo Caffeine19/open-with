@@ -6,11 +6,16 @@ struct AppAssociationInfo {
     var uriSchemes: [String] = []
     var viewerUTIs: [String] = []
     var editorUTIs: [String] = []
+    /// Items where this app is the current system default handler
+    var defaultURISchemes: Set<String> = []
+    var defaultViewerUTIs: Set<String> = []
+    var defaultEditorUTIs: Set<String> = []
 }
 
 struct ApplicationsView: View {
     @StateObject private var viewModel = ApplicationsViewModel()
     @State private var searchText = ""
+    @FocusState private var isSearchFocused: Bool
     @State private var selectedApp: AppInfo?
 
     var filteredApps: [AppInfo] {
@@ -30,6 +35,7 @@ struct ApplicationsView: View {
                 HStack(spacing: 8) {
                     TextField("Search applications", text: $searchText)
                         .textFieldStyle(.roundedBorder)
+                        .focused($isSearchFocused)
                     Button {
                         Task { await viewModel.loadApplications() }
                     } label: {
@@ -46,8 +52,8 @@ struct ApplicationsView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List(filteredApps, selection: $selectedApp) { app in
-                        HStack(spacing: 8) {
-                            Image(nsImage: app.icon.resized(to: NSSize(width: 24, height: 24)))
+                        HStack(spacing: 16) {
+                            Image(nsImage: app.icon.resized(to: NSSize(width: 32, height: 32)))
                             Text(app.name)
                                 .lineLimit(1)
                         }
@@ -79,6 +85,12 @@ struct ApplicationsView: View {
             }
         }
         .navigationTitle("Applications")
+        .background {
+            Button("") { isSearchFocused = true }
+                .keyboardShortcut("f", modifiers: .command)
+                .opacity(0)
+                .frame(width: 0, height: 0)
+        }
         .task {
             await viewModel.loadApplications()
         }
@@ -100,6 +112,13 @@ enum SelectableItem: Hashable {
     }
 }
 
+// MARK: - Default Handler Filter
+enum DefaultFilter: String, CaseIterable {
+    case all = "All"
+    case isDefault = "Default"
+    case notDefault = "Non-default"
+}
+
 // MARK: - App Detail View
 struct AppDetailView: View {
     let app: AppInfo
@@ -111,6 +130,38 @@ struct AppDetailView: View {
     @State private var selectedItems: Set<SelectableItem> = []
     @State private var showingAppPicker = false
     @State private var availableApps: [AppInfo] = []
+    @State private var defaultFilter: DefaultFilter = .all
+
+    // MARK: - Filtered items
+    private var filteredURISchemes: [String] {
+        switch defaultFilter {
+        case .all: return associations.uriSchemes
+        case .isDefault:
+            return associations.uriSchemes.filter { associations.defaultURISchemes.contains($0) }
+        case .notDefault:
+            return associations.uriSchemes.filter { !associations.defaultURISchemes.contains($0) }
+        }
+    }
+
+    private var filteredViewerUTIs: [String] {
+        switch defaultFilter {
+        case .all: return associations.viewerUTIs
+        case .isDefault:
+            return associations.viewerUTIs.filter { associations.defaultViewerUTIs.contains($0) }
+        case .notDefault:
+            return associations.viewerUTIs.filter { !associations.defaultViewerUTIs.contains($0) }
+        }
+    }
+
+    private var filteredEditorUTIs: [String] {
+        switch defaultFilter {
+        case .all: return associations.editorUTIs
+        case .isDefault:
+            return associations.editorUTIs.filter { associations.defaultEditorUTIs.contains($0) }
+        case .notDefault:
+            return associations.editorUTIs.filter { !associations.defaultEditorUTIs.contains($0) }
+        }
+    }
 
     private var hasSelection: Bool {
         !selectedItems.isEmpty
@@ -165,51 +216,71 @@ struct AppDetailView: View {
                     }
                     .padding(.bottom, 8)
 
+                    // Filter Picker
+                    Picker("Filter", selection: $defaultFilter) {
+                        ForEach(DefaultFilter.allCases, id: \.self) { filter in
+                            Text(filter.rawValue).tag(filter)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+
                     Divider()
 
                     // URI Schemes Section
                     DisclosureGroup(isExpanded: $uriSchemesExpanded) {
-                        if associations.uriSchemes.isEmpty {
-                            Text("No URI schemes registered")
-                                .font(.body)
-                                .foregroundStyle(.tertiary)
-                                .padding(.vertical, 4)
+                        Group {
+                            if associations.uriSchemes.isEmpty {
+                                Text("No URI schemes registered")
+                                    .font(.body)
+                                    .foregroundStyle(.tertiary)
+                                    .padding(.vertical, 4)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            } else if filteredURISchemes.isEmpty {
+                                Text("No matching URI schemes")
+                                    .font(.body)
+                                    .foregroundStyle(.tertiary)
+                                    .padding(.vertical, 4)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            } else {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    // Select All / Deselect All for URI Schemes
+                                    HStack {
+                                        Button("Select All") {
+                                            for scheme in filteredURISchemes {
+                                                selectedItems.insert(.uriScheme(scheme))
+                                            }
+                                        }
+                                        .buttonStyle(.borderless)
+                                        .font(.caption)
+
+                                        Button("Deselect All") {
+                                            for scheme in filteredURISchemes {
+                                                selectedItems.remove(.uriScheme(scheme))
+                                            }
+                                        }
+                                        .buttonStyle(.borderless)
+                                        .font(.caption)
+                                    }
+                                    .padding(.bottom, 4)
+
+                                    ForEach(filteredURISchemes, id: \.self) { scheme in
+                                        SelectableRow(
+                                            item: .uriScheme(scheme),
+                                            icon: "link",
+                                            text: "\(scheme)://",
+                                            isDefault: associations.defaultURISchemes.contains(
+                                                scheme),
+                                            isSelected: selectedItems.contains(.uriScheme(scheme)),
+                                            onToggle: { toggleSelection(.uriScheme(scheme)) }
+                                        )
+                                    }
+                                }
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                        } else {
-                            VStack(alignment: .leading, spacing: 2) {
-                                // Select All / Deselect All for URI Schemes
-                                HStack {
-                                    Button("Select All") {
-                                        for scheme in associations.uriSchemes {
-                                            selectedItems.insert(.uriScheme(scheme))
-                                        }
-                                    }
-                                    .buttonStyle(.borderless)
-                                    .font(.caption)
-
-                                    Button("Deselect All") {
-                                        for scheme in associations.uriSchemes {
-                                            selectedItems.remove(.uriScheme(scheme))
-                                        }
-                                    }
-                                    .buttonStyle(.borderless)
-                                    .font(.caption)
-                                }
-                                .padding(.bottom, 4)
-
-                                ForEach(associations.uriSchemes, id: \.self) { scheme in
-                                    SelectableRow(
-                                        item: .uriScheme(scheme),
-                                        icon: "link",
-                                        text: "\(scheme)://",
-                                        isSelected: selectedItems.contains(.uriScheme(scheme)),
-                                        onToggle: { toggleSelection(.uriScheme(scheme)) }
-                                    )
-                                }
+                                .padding(.top, 4)
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, 4)
                         }
+                        .padding(.leading, 10)
                     } label: {
                         Label("URI Schemes", systemImage: "link.circle")
                             .font(.headline)
@@ -221,16 +292,16 @@ struct AppDetailView: View {
                             // Viewer UTIs
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
-                                    Text("Viewer")
+                                    Label("Viewer", systemImage: "eye")
                                         .font(.subheadline)
                                         .fontWeight(.medium)
                                         .foregroundStyle(.secondary)
 
                                     Spacer()
 
-                                    if !associations.viewerUTIs.isEmpty {
+                                    if !filteredViewerUTIs.isEmpty {
                                         Button("Select All") {
-                                            for uti in associations.viewerUTIs {
+                                            for uti in filteredViewerUTIs {
                                                 selectedItems.insert(.viewerUTI(uti))
                                             }
                                         }
@@ -238,7 +309,7 @@ struct AppDetailView: View {
                                         .font(.caption)
 
                                         Button("Deselect") {
-                                            for uti in associations.viewerUTIs {
+                                            for uti in filteredViewerUTIs {
                                                 selectedItems.remove(.viewerUTI(uti))
                                             }
                                         }
@@ -251,12 +322,16 @@ struct AppDetailView: View {
                                     Text("None")
                                         .font(.body)
                                         .foregroundStyle(.tertiary)
+                                } else if filteredViewerUTIs.isEmpty {
+                                    Text("No matching viewer UTIs")
+                                        .font(.body)
+                                        .foregroundStyle(.tertiary)
                                 } else {
-                                    ForEach(associations.viewerUTIs, id: \.self) { uti in
+                                    ForEach(filteredViewerUTIs, id: \.self) { uti in
                                         SelectableRow(
                                             item: .viewerUTI(uti),
-                                            icon: "eye",
                                             text: uti,
+                                            isDefault: associations.defaultViewerUTIs.contains(uti),
                                             isSelected: selectedItems.contains(.viewerUTI(uti)),
                                             onToggle: { toggleSelection(.viewerUTI(uti)) }
                                         )
@@ -268,16 +343,16 @@ struct AppDetailView: View {
                             // Editor UTIs
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
-                                    Text("Editor")
+                                    Label("Editor", systemImage: "pencil")
                                         .font(.subheadline)
                                         .fontWeight(.medium)
                                         .foregroundStyle(.secondary)
 
                                     Spacer()
 
-                                    if !associations.editorUTIs.isEmpty {
+                                    if !filteredEditorUTIs.isEmpty {
                                         Button("Select All") {
-                                            for uti in associations.editorUTIs {
+                                            for uti in filteredEditorUTIs {
                                                 selectedItems.insert(.editorUTI(uti))
                                             }
                                         }
@@ -285,7 +360,7 @@ struct AppDetailView: View {
                                         .font(.caption)
 
                                         Button("Deselect") {
-                                            for uti in associations.editorUTIs {
+                                            for uti in filteredEditorUTIs {
                                                 selectedItems.remove(.editorUTI(uti))
                                             }
                                         }
@@ -298,12 +373,16 @@ struct AppDetailView: View {
                                     Text("None")
                                         .font(.body)
                                         .foregroundStyle(.tertiary)
+                                } else if filteredEditorUTIs.isEmpty {
+                                    Text("No matching editor UTIs")
+                                        .font(.body)
+                                        .foregroundStyle(.tertiary)
                                 } else {
-                                    ForEach(associations.editorUTIs, id: \.self) { uti in
+                                    ForEach(filteredEditorUTIs, id: \.self) { uti in
                                         SelectableRow(
                                             item: .editorUTI(uti),
-                                            icon: "pencil",
                                             text: uti,
+                                            isDefault: associations.defaultEditorUTIs.contains(uti),
                                             isSelected: selectedItems.contains(.editorUTI(uti)),
                                             onToggle: { toggleSelection(.editorUTI(uti)) }
                                         )
@@ -314,6 +393,7 @@ struct AppDetailView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 4)
+                        .padding(.leading, 10)
                     } label: {
                         Label("Uniform Type Identifiers", systemImage: "doc.circle")
                             .font(.headline)
@@ -382,8 +462,9 @@ struct AppDetailView: View {
 // MARK: - Selectable Row
 struct SelectableRow: View {
     let item: SelectableItem
-    let icon: String
+    var icon: String? = nil
     let text: String
+    var isDefault: Bool = false
     let isSelected: Bool
     let onToggle: () -> Void
 
@@ -394,9 +475,20 @@ struct SelectableRow: View {
                 .frame(width: 18)
                 .onTapGesture { onToggle() }
 
-            Image(systemName: icon)
-                .foregroundStyle(.secondary)
+            Image(systemName: isDefault ? "checkmark.square.fill" : "square")
+                .foregroundStyle(
+                    isDefault ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.quaternary)
+                )
                 .frame(width: 18)
+                .help(
+                    isDefault
+                        ? "This app is the default handler" : "This app is not the default handler")
+
+            if let icon {
+                Image(systemName: icon)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 18)
+            }
 
             Text(text)
                 .font(.system(.body, design: .monospaced))
@@ -509,10 +601,41 @@ class ApplicationsViewModel: ObservableObject {
 
         let content = lsManager.getHandledContent(for: appPath)
 
+        // Check which items this app is the current default handler for
+        var defaultSchemes: Set<String> = []
+        for scheme in content.uriSchemes {
+            if let handler = lsManager.getDefaultHandler(for: scheme),
+                handler.bundleIdentifier == app.bundleIdentifier
+            {
+                defaultSchemes.insert(scheme)
+            }
+        }
+
+        var defaultViewerUTIs: Set<String> = []
+        for uti in content.viewerUTIs {
+            if let handler = lsManager.getDefaultHandler(for: uti, role: .viewer),
+                handler.bundleIdentifier == app.bundleIdentifier
+            {
+                defaultViewerUTIs.insert(uti)
+            }
+        }
+
+        var defaultEditorUTIs: Set<String> = []
+        for uti in content.editorUTIs {
+            if let handler = lsManager.getDefaultHandler(for: uti, role: .editor),
+                handler.bundleIdentifier == app.bundleIdentifier
+            {
+                defaultEditorUTIs.insert(uti)
+            }
+        }
+
         return AppAssociationInfo(
             uriSchemes: content.uriSchemes,
             viewerUTIs: content.viewerUTIs,
-            editorUTIs: content.editorUTIs
+            editorUTIs: content.editorUTIs,
+            defaultURISchemes: defaultSchemes,
+            defaultViewerUTIs: defaultViewerUTIs,
+            defaultEditorUTIs: defaultEditorUTIs
         )
     }
 

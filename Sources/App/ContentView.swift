@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selectedCategory: Category = .internet
-    
+
     var body: some View {
         NavigationSplitView {
             // Sidebar
@@ -28,6 +28,27 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .keyboardShortcut(for: $selectedCategory)
+    }
+}
+
+extension View {
+    fileprivate func keyboardShortcut(for selection: Binding<Category>) -> some View {
+        self
+            .background {
+                Group {
+                    Button("") { selection.wrappedValue = .internet }
+                        .keyboardShortcut("1", modifiers: .command)
+                    Button("") { selection.wrappedValue = .uriSchemes }
+                        .keyboardShortcut("2", modifiers: .command)
+                    Button("") { selection.wrappedValue = .fileTypes }
+                        .keyboardShortcut("3", modifiers: .command)
+                    Button("") { selection.wrappedValue = .applications }
+                        .keyboardShortcut("4", modifiers: .command)
+                }
+                .opacity(0)
+                .frame(width: 0, height: 0)
+            }
     }
 }
 
@@ -36,9 +57,9 @@ enum Category: String, CaseIterable, Identifiable {
     case uriSchemes
     case fileTypes
     case applications
-    
+
     var id: String { rawValue }
-    
+
     var title: String {
         switch self {
         case .internet: return "Internet"
@@ -47,12 +68,12 @@ enum Category: String, CaseIterable, Identifiable {
         case .applications: return "Applications"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .internet: return "globe"
         case .uriSchemes: return "link"
-        case .fileTypes: return "doc.fill"
+        case .fileTypes: return "doc"
         case .applications: return "app.badge"
         }
     }

@@ -4,23 +4,25 @@ import UniformTypeIdentifiers
 struct FileTypesView: View {
     @StateObject private var viewModel = FileTypesViewModel()
     @State private var searchText = ""
-    
+    @FocusState private var isSearchFocused: Bool
+
     var filteredTypes: [FileTypeItem] {
         if searchText.isEmpty {
             return viewModel.fileTypes
         }
         return viewModel.fileTypes.filter {
-            $0.uti.localizedCaseInsensitiveContains(searchText) ||
-            $0.description.localizedCaseInsensitiveContains(searchText) ||
-            $0.extensions.joined().localizedCaseInsensitiveContains(searchText)
+            $0.uti.localizedCaseInsensitiveContains(searchText)
+                || $0.description.localizedCaseInsensitiveContains(searchText)
+                || $0.extensions.joined().localizedCaseInsensitiveContains(searchText)
         }
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 TextField("Search file types", text: $searchText)
                     .textFieldStyle(.roundedBorder)
+                    .focused($isSearchFocused)
                 Button {
                     Task { await viewModel.loadFileTypes() }
                 } label: {
@@ -54,6 +56,12 @@ struct FileTypesView: View {
             }
         }
         .navigationTitle("File Types")
+        .background {
+            Button("") { isSearchFocused = true }
+                .keyboardShortcut("f", modifiers: .command)
+                .opacity(0)
+                .frame(width: 0, height: 0)
+        }
         .task {
             await viewModel.loadFileTypes()
         }
@@ -70,34 +78,34 @@ struct FileTypesView: View {
 struct FileTypeRow: View {
     let item: FileTypeItem
     @ObservedObject var viewModel: FileTypesViewModel
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
                 // File type icon
                 Image(nsImage: item.icon.resized(to: NSSize(width: 20, height: 20)))
-                
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.description)
                         .font(.headline)
-                    
+
                     HStack(spacing: 8) {
                         if !item.extensions.isEmpty {
                             Text(item.extensions.map { ".\($0)" }.joined(separator: ", "))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        
+
                         Text(item.uti)
                             .font(.caption2)
                             .fontDesign(.monospaced)
                             .foregroundStyle(.tertiary)
                     }
                 }
-                
+
                 Spacer()
             }
-            
+
             // Role pickers
             HStack(spacing: 20) {
                 RolePicker(
@@ -108,7 +116,7 @@ struct FileTypeRow: View {
                         viewModel.setHandler(app, for: item.uti, role: .viewer)
                     }
                 )
-                
+
                 RolePicker(
                     role: "Editor",
                     selectedApp: item.editorHandler,
@@ -129,32 +137,35 @@ struct RolePicker: View {
     let selectedApp: AppInfo?
     let availableApps: [AppInfo]
     let onSelect: (AppInfo) -> Void
-    
+
     var body: some View {
         HStack(spacing: 8) {
             Text(role + ":")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .frame(width: 50, alignment: .trailing)
-            
+
             if availableApps.isEmpty {
                 Text("No apps")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } else {
-                Picker("", selection: Binding(
-                    get: { selectedApp },
-                    set: { newApp in
-                        if let app = newApp {
-                            onSelect(app)
+                Picker(
+                    "",
+                    selection: Binding(
+                        get: { selectedApp },
+                        set: { newApp in
+                            if let app = newApp {
+                                onSelect(app)
+                            }
                         }
-                    }
-                )) {
+                    )
+                ) {
                     Text("None")
                         .tag(nil as AppInfo?)
-                    
+
                     Divider()
-                    
+
                     ForEach(availableApps) { app in
                         HStack {
                             Image(nsImage: app.icon.resized(to: NSSize(width: 12, height: 12)))
