@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run App",
+      "type": "shell",
+      "command": "${workspaceFolder}/Scripts/run.sh",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": { "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Verify Build",
+      "type": "shell",
+      "command": "${workspaceFolder}/Scripts/verify.sh",
+      "group": "build",
+      "presentation": { "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Release App",
+      "type": "shell",
+      "command": "${workspaceFolder}/Scripts/release.sh",
+      "group": "build",
+      "presentation": { "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Publish Release",
+      "type": "shell",
+      "command": "${workspaceFolder}/Scripts/publish.sh '${input:version}'",
+      "group": "build",
+      "presentation": { "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Convert ICNS to AppIcon.appiconset",
+      "type": "shell",
+      "command": "${workspaceFolder}/Scripts/convert-icon.sh '${input:icnsPath}'",
+      "presentation": { "clear": true },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "version",
+      "type": "promptString",
+      "description": "Release version (without v prefix)",
+      "default": "1.0.0"
+    },
+    {
+      "id": "icnsPath",
+      "type": "promptString",
+      "description": "Absolute path to the source .icns file",
+      "default": "${workspaceFolder}/AppIcon.icns"
+    }
+  ]
+}

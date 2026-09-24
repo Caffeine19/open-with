@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
+
+pkill -x OpenWith || true
+
+"$SCRIPT_DIR/package_app.sh" debug
+
+open "$PROJECT_ROOT/OpenWith.app"
