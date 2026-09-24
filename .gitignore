@@ -1,2 +1,9 @@
 .build/
 .DS_Store
+
+# Xcode / SwiftPM per-user state
+.swiftpm/**/xcuserdata/
+
+# Build & packaging output
+OpenWith.app/
+dist/
