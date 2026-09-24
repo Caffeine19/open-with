@@ -29,7 +29,8 @@ struct FileTypeItem: Identifiable {
 @MainActor
 class FileTypesViewModel: ObservableObject {
     @Published var fileTypes: [FileTypeItem] = []
-    @Published var isLoading = false
+    // Starts `true` so the first frame shows loading, not the empty state.
+    @Published var isLoading = true
     @Published var showError = false
     var lastError: Error?
     

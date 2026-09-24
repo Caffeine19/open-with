@@ -1,3 +1,4 @@
+import Luminare
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -19,43 +20,36 @@ struct FileTypesView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                TextField("Search file types", text: $searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($isSearchFocused)
-                Button {
+            SearchBar(
+                placeholder: "Search file types",
+                text: $searchText,
+                focused: $isSearchFocused,
+                onRefresh: {
                     Task { await viewModel.loadFileTypes() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
                 }
-                .buttonStyle(.borderless)
-                .help("Refresh")
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            )
 
             if viewModel.isLoading {
                 ProgressView("Loading file types...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.fileTypes.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "doc.circle")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-                    Text("No File Types Found")
-                        .font(.title2)
-                    Text("Unable to load registered file types")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EmptyStateView(
+                    icon: "doc.circle",
+                    title: "No File Types Found",
+                    message: "Unable to load registered file types"
+                )
             } else {
                 List(filteredTypes) { item in
                     FileTypeRow(item: item, viewModel: viewModel)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(.init(top: 2, leading: 12, bottom: 2, trailing: 12))
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .padding(.bottom, 8)
             }
         }
-        .navigationTitle("File Types")
         .background {
             Button("") { isSearchFocused = true }
                 .keyboardShortcut("f", modifiers: .command)
@@ -80,55 +74,50 @@ struct FileTypeRow: View {
     @ObservedObject var viewModel: FileTypesViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                // File type icon
-                Image(nsImage: item.icon.resized(to: NSSize(width: 20, height: 20)))
+        HStack(spacing: 12) {
+            Image(nsImage: item.icon.resized(to: NSSize(width: 22, height: 22)))
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.description)
-                        .font(.headline)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.description)
+                    .fontWeight(.medium)
 
-                    HStack(spacing: 8) {
-                        if !item.extensions.isEmpty {
-                            Text(item.extensions.map { ".\($0)" }.joined(separator: ", "))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Text(item.uti)
-                            .font(.caption2)
-                            .fontDesign(.monospaced)
-                            .foregroundStyle(.tertiary)
+                HStack(spacing: 8) {
+                    if !item.extensions.isEmpty {
+                        Text(item.extensions.map { ".\($0)" }.joined(separator: ", "))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
+
+                    Text(item.uti)
+                        .font(.caption2)
+                        .fontDesign(.monospaced)
+                        .foregroundStyle(.tertiary)
                 }
-
-                Spacer()
             }
 
-            // Role pickers
-            HStack(spacing: 20) {
-                RolePicker(
-                    role: "Viewer",
-                    selectedApp: item.viewerHandler,
-                    availableApps: item.availableHandlers,
-                    onSelect: { app in
-                        viewModel.setHandler(app, for: item.uti, role: .viewer)
-                    }
-                )
+            Spacer()
 
-                RolePicker(
-                    role: "Editor",
-                    selectedApp: item.editorHandler,
-                    availableApps: item.availableHandlers,
-                    onSelect: { app in
-                        viewModel.setHandler(app, for: item.uti, role: .editor)
-                    }
-                )
-            }
-            .padding(.leading, 44)
+            RolePicker(
+                role: "Viewer",
+                selectedApp: item.viewerHandler,
+                availableApps: item.availableHandlers,
+                onSelect: { app in
+                    viewModel.setHandler(app, for: item.uti, role: .viewer)
+                }
+            )
+
+            RolePicker(
+                role: "Editor",
+                selectedApp: item.editorHandler,
+                availableApps: item.availableHandlers,
+                onSelect: { app in
+                    viewModel.setHandler(app, for: item.uti, role: .editor)
+                }
+            )
         }
         .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .hoverRowHighlight()
     }
 }
 
@@ -143,47 +132,23 @@ struct RolePicker: View {
             Text(role + ":")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .frame(width: 50, alignment: .trailing)
+                .frame(width: 44, alignment: .trailing)
 
-            if availableApps.isEmpty {
-                Text("No apps")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            } else {
-                Picker(
-                    "",
-                    selection: Binding(
-                        get: { selectedApp },
-                        set: { newApp in
-                            if let app = newApp {
-                                onSelect(app)
-                            }
-                        }
-                    )
-                ) {
-                    Text("None")
-                        .tag(nil as AppInfo?)
-
-                    Divider()
-
-                    ForEach(availableApps) { app in
-                        HStack {
-                            Image(nsImage: app.icon.resized(to: NSSize(width: 12, height: 12)))
-                            Text(app.name)
-                        }
-                        .tag(app as AppInfo?)
+            AppMenuPicker(
+                apps: availableApps,
+                allowsNone: true,
+                selection: selectedApp,
+                onCommit: { app in
+                    if let app {
+                        onSelect(app)
                     }
                 }
-                .pickerStyle(.menu)
-                .frame(width: 180)
-            }
+            )
         }
     }
 }
 
 #Preview {
-    NavigationStack {
-        FileTypesView()
-    }
-    .frame(width: 800, height: 600)
+    FileTypesView()
+        .frame(width: 800, height: 600)
 }

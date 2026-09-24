@@ -13,7 +13,8 @@ class InternetSchemesViewModel: ObservableObject {
     @Published var ftpApps: [AppInfo] = []
     @Published var rssApps: [AppInfo] = []
     
-    @Published var isLoading = false
+    // Starts `true` so the first frame shows loading, not the empty state.
+    @Published var isLoading = true
     @Published var showError = false
     var lastError: Error?
     

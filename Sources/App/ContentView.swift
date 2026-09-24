@@ -1,56 +1,59 @@
+import Luminare
 import SwiftUI
 
 struct ContentView: View {
-    @State private var selectedCategory: Category = .internet
+    @State private var selection: Category = .internet
+    @Environment(\.luminareTitleBarHeight) private var titleBarHeight
 
     var body: some View {
-        NavigationSplitView {
-            // Sidebar
-            List(Category.allCases, selection: $selectedCategory) { category in
-                Label(category.title, systemImage: category.icon)
-                    .tag(category)
+        LuminareDividedStack {
+            LuminareSidebar {
+                LuminareSidebarSection(selection: $selection, items: Category.allCases)
             }
-            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 300)
-            .navigationTitle("Categories")
-        } detail: {
-            // Detail View
-            Group {
-                switch selectedCategory {
-                case .internet:
-                    InternetSchemesView()
-                case .uriSchemes:
-                    URISchemesView()
-                case .fileTypes:
-                    FileTypesView()
-                case .applications:
-                    ApplicationsView()
+            .frame(width: 180)
+            .padding(.top, titleBarHeight)
+            .luminareBackground()
+            .border(.clear, width: 0)
+
+            LuminarePane {
+                selection.view()
+            } header: {
+                HStack {
+                    selection.decoratedImageView
+                    Text(selection.title)
+                        .font(.title2)
+                    Spacer()
                 }
+                .padding(.horizontal, 12)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .luminarePaneLayout(.none)
         }
-        .keyboardShortcut(for: $selectedCategory)
+        .frame(minWidth: 880, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
+        .ignoresSafeArea()
+        .luminareBackground()
+        .background {
+            keyboardShortcutButtons
+        }
+    }
+
+    /// Hidden buttons binding ⌘1–⌘4 to the sidebar tabs.
+    private var keyboardShortcutButtons: some View {
+        Group {
+            Button("") { selection = .internet }
+                .keyboardShortcut("1", modifiers: .command)
+            Button("") { selection = .uriSchemes }
+                .keyboardShortcut("2", modifiers: .command)
+            Button("") { selection = .fileTypes }
+                .keyboardShortcut("3", modifiers: .command)
+            Button("") { selection = .applications }
+                .keyboardShortcut("4", modifiers: .command)
+        }
+        .opacity(0)
+        .frame(width: 0, height: 0)
     }
 }
 
-extension View {
-    fileprivate func keyboardShortcut(for selection: Binding<Category>) -> some View {
-        self
-            .background {
-                Group {
-                    Button("") { selection.wrappedValue = .internet }
-                        .keyboardShortcut("1", modifiers: .command)
-                    Button("") { selection.wrappedValue = .uriSchemes }
-                        .keyboardShortcut("2", modifiers: .command)
-                    Button("") { selection.wrappedValue = .fileTypes }
-                        .keyboardShortcut("3", modifiers: .command)
-                    Button("") { selection.wrappedValue = .applications }
-                        .keyboardShortcut("4", modifiers: .command)
-                }
-                .opacity(0)
-                .frame(width: 0, height: 0)
-            }
-    }
-}
+// MARK: - Categories
 
 enum Category: String, CaseIterable, Identifiable {
     case internet
@@ -77,9 +80,23 @@ enum Category: String, CaseIterable, Identifiable {
         case .applications: return "app.badge"
         }
     }
+
+    @ViewBuilder
+    func view() -> some View {
+        switch self {
+        case .internet: InternetSchemesView()
+        case .uriSchemes: URISchemesView()
+        case .fileTypes: FileTypesView()
+        case .applications: ApplicationsView()
+        }
+    }
+}
+
+extension Category: LuminareTabItem {
+    var image: Image { Image(systemName: icon) }
 }
 
 #Preview {
     ContentView()
-        .frame(width: 900, height: 700)
+        .frame(width: 1040, height: 720)
 }

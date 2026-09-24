@@ -18,7 +18,8 @@ struct URISchemeItem: Identifiable {
 @MainActor
 class URISchemesViewModel: ObservableObject {
     @Published var schemes: [URISchemeItem] = []
-    @Published var isLoading = false
+    // Starts `true` so the first frame shows loading, not the empty state.
+    @Published var isLoading = true
     @Published var showError = false
     var lastError: Error?
     

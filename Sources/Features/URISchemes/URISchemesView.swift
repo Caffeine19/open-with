@@ -1,3 +1,4 @@
+import Luminare
 import SwiftUI
 
 struct URISchemesView: View {
@@ -17,43 +18,36 @@ struct URISchemesView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                TextField("Search schemes", text: $searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($isSearchFocused)
-                Button {
+            SearchBar(
+                placeholder: "Search schemes",
+                text: $searchText,
+                focused: $isSearchFocused,
+                onRefresh: {
                     Task { await viewModel.loadSchemes() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
                 }
-                .buttonStyle(.borderless)
-                .help("Refresh")
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            )
 
             if viewModel.isLoading {
                 ProgressView("Loading URI schemes...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.schemes.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "link.circle")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-                    Text("No URI Schemes Found")
-                        .font(.title2)
-                    Text("Unable to load registered URI schemes")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EmptyStateView(
+                    icon: "link.circle",
+                    title: "No URI Schemes Found",
+                    message: "Unable to load registered URI schemes"
+                )
             } else {
                 List(filteredSchemes) { item in
                     URISchemeRow(item: item, viewModel: viewModel)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(.init(top: 1, leading: 12, bottom: 1, trailing: 12))
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .padding(.bottom, 8)
             }
         }
-        .navigationTitle("URI Schemes")
         .background {
             Button("") { isSearchFocused = true }
                 .keyboardShortcut("f", modifiers: .command)
@@ -79,65 +73,34 @@ struct URISchemeRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Scheme icon
             Image(systemName: "link")
-                .font(.title2)
+                .font(.title3)
                 .foregroundStyle(.secondary)
-                .frame(width: 32)
+                .frame(width: 24)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.scheme + "://")
-                    .font(.headline)
-                    .fontDesign(.monospaced)
-
-                if let handler = item.handler {
-                    HStack(spacing: 4) {
-                        Image(nsImage: handler.icon.resized(to: NSSize(width: 12, height: 12)))
-                        Text(handler.name)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Text("No handler")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-            }
+            Text(item.scheme + "://")
+                .font(.system(.callout, design: .monospaced))
+                .fontWeight(.medium)
 
             Spacer()
 
-            // App picker
-            if !item.availableHandlers.isEmpty {
-                Picker(
-                    "",
-                    selection: Binding(
-                        get: { item.handler },
-                        set: { newApp in
-                            if let app = newApp {
-                                viewModel.setHandler(app, for: item.scheme)
-                            }
-                        }
-                    )
-                ) {
-                    ForEach(item.availableHandlers) { app in
-                        HStack {
-                            Image(nsImage: app.icon.resized(to: NSSize(width: 12, height: 12)))
-                            Text(app.name)
-                        }
-                        .tag(app as AppInfo?)
+            AppMenuPicker(
+                apps: item.availableHandlers,
+                selection: item.handler,
+                onCommit: { app in
+                    if let app {
+                        viewModel.setHandler(app, for: item.scheme)
                     }
                 }
-                .pickerStyle(.menu)
-                .frame(width: 200)
-            }
+            )
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 5)
+        .padding(.horizontal, 8)
+        .hoverRowHighlight()
     }
 }
 
 #Preview {
-    NavigationStack {
-        URISchemesView()
-    }
-    .frame(width: 700, height: 500)
+    URISchemesView()
+        .frame(width: 700, height: 500)
 }

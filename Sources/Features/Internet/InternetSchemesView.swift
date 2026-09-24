@@ -1,16 +1,17 @@
+import Luminare
 import SwiftUI
 
 struct InternetSchemesView: View {
     @StateObject private var viewModel = InternetSchemesViewModel()
-    
+
     var body: some View {
         Group {
             if viewModel.isLoading {
                 ProgressView("Loading internet services...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                Form {
-                    Section("Web Browser") {
+                PaneScrollView {
+                    LuminareSection("Web Browser") {
                         AppPicker(
                             title: "HTTP/HTTPS",
                             selectedApp: $viewModel.defaultBrowser,
@@ -20,8 +21,8 @@ struct InternetSchemesView: View {
                             }
                         )
                     }
-                    
-                    Section("Email Client") {
+
+                    LuminareSection("Email Client") {
                         AppPicker(
                             title: "mailto:",
                             selectedApp: $viewModel.defaultMailClient,
@@ -31,8 +32,8 @@ struct InternetSchemesView: View {
                             }
                         )
                     }
-                    
-                    Section("Other Protocols") {
+
+                    LuminareSection("Other Protocols") {
                         AppPicker(
                             title: "FTP",
                             selectedApp: $viewModel.defaultFTP,
@@ -41,7 +42,7 @@ struct InternetSchemesView: View {
                                 viewModel.setDefaultFTP(app)
                             }
                         )
-                        
+
                         AppPicker(
                             title: "RSS",
                             selectedApp: $viewModel.defaultRSS,
@@ -52,10 +53,8 @@ struct InternetSchemesView: View {
                         )
                     }
                 }
-                .formStyle(.grouped)
             }
         }
-        .navigationTitle("Internet Services")
         .task {
             await viewModel.loadData()
         }
@@ -70,8 +69,6 @@ struct InternetSchemesView: View {
 }
 
 #Preview {
-    NavigationStack {
-        InternetSchemesView()
-    }
-    .frame(width: 600, height: 500)
+    InternetSchemesView()
+        .frame(width: 640, height: 480)
 }
