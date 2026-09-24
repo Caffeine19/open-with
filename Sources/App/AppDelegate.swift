@@ -96,6 +96,10 @@ final class MainWindowController {
     static let shared = MainWindowController()
 
     private var window: NSWindow?
+    /// How far to push the traffic lights left/down from their default spot.
+    private let trafficLightOffset = CGPoint(x: -8, y: 10)
+    private var defaultTrafficLightFrames: [NSWindow.ButtonType: CGRect] = [:]
+    private var resizeObserver: Any?
 
     private init() {}
 
@@ -117,8 +121,42 @@ final class MainWindowController {
             luminareWindow.center()
 
             window = luminareWindow
+            offsetTrafficLights(of: luminareWindow)
         }
 
-        window?.makeKeyAndOrderFront(nil)
+        guard let window else { return }
+        window.makeKeyAndOrderFront(nil)
+        // AppKit may reset button frames during layout, so re-apply the offset
+        // every time the window is shown (same as PassingThrough does).
+        applyTrafficLightOffset(of: window)
+    }
+
+    /// Moves the traffic light buttons left/down by `trafficLightOffset`.
+    private func offsetTrafficLights(of window: NSWindow) {
+        let buttons: [NSWindow.ButtonType] = [.closeButton, .miniaturizeButton, .zoomButton]
+        for type in buttons {
+            guard let button = window.standardWindowButton(type) else { continue }
+            defaultTrafficLightFrames[type] = button.frame
+        }
+        applyTrafficLightOffset(of: window)
+
+        resizeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didResizeNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self, let window = self.window else { return }
+            self.applyTrafficLightOffset(of: window)
+        }
+    }
+
+    private func applyTrafficLightOffset(of window: NSWindow) {
+        for (type, defaultFrame) in defaultTrafficLightFrames {
+            guard let button = window.standardWindowButton(type) else { continue }
+            var frame = defaultFrame
+            frame.origin.x -= trafficLightOffset.x
+            frame.origin.y -= trafficLightOffset.y
+            button.setFrameOrigin(frame.origin)
+        }
     }
 }
