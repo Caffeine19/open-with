@@ -12,7 +12,7 @@ struct PaneScrollView<Content: View>: View {
             LazyVStack(alignment: .leading, spacing: 12) {
                 content()
             }
-            .padding(12)
+            .padding(20)
         }
     }
 }
@@ -49,7 +49,7 @@ struct SearchBar: View {
                     .strokeBorder(.quaternary)
             }
 
-            // Button: fixed square, width equals height.
+            // Button: fixed square, width equals height, matching the input.
             if let onRefresh {
                 Button(action: onRefresh) {
                     Image(systemName: "arrow.clockwise")
@@ -66,23 +66,31 @@ struct SearchBar: View {
 
 // MARK: - Search Icon Button
 
-/// A square icon button whose width is fixed to its height.
+/// A square icon button pinned to a fixed size (width == height) so it lines
+/// up with the search field. Visuals are built from Luminare's own button
+/// modifiers, identical to the default `.luminareCompact` style (fill,
+/// always-on border, hover/press states).
 struct SearchIconButtonStyle: ButtonStyle {
     var height: CGFloat = 32
 
+    @Environment(\.luminareAnimationFast) private var animationFast
     @State private var isHovering = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .frame(width: height, height: height)
-            .background(.quinary, in: RoundedRectangle(cornerRadius: 8))
-            .overlay {
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(isHovering ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
-            }
-            .contentShape(RoundedRectangle(cornerRadius: 8))
-            .opacity(configuration.isPressed ? 0.7 : 1)
+            .modifier(
+                LuminareFilledModifier(
+                    isHovering: isHovering,
+                    isPressed: configuration.isPressed,
+                    fill: .quinary,
+                    hovering: .quaternary.opacity(0.7),
+                    pressed: .quaternary
+                )
+            )
+            .modifier(LuminareBorderedModifier(isHovering: isHovering))
             .onHover { isHovering = $0 }
+            .animation(animationFast, value: isHovering)
     }
 }
 

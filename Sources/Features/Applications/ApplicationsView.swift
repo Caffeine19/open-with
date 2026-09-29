@@ -86,7 +86,7 @@ struct ApplicationsView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .frame(minWidth: 280, maxWidth: 280, maxHeight: .infinity)
+        .frame(minWidth: 320, maxWidth: 320, maxHeight: .infinity)
         .padding(.vertical, 8)
     }
 }
@@ -226,10 +226,8 @@ struct AppDetailView: View {
                     uriSchemesSection
 
                     utisSection
-
-                    appPathFooter
                 }
-                .padding(12)
+                .padding(20)
             }
         }
         .frame(minWidth: 400, maxWidth: .infinity, maxHeight: .infinity)
@@ -263,6 +261,28 @@ struct AppDetailView: View {
             }
 
             Spacer()
+
+            if let path = app.path {
+                Button {
+                    NSWorkspace.shared.selectFile(
+                        nil, inFileViewerRootedAtPath: path.path)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                        Text(path.path)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Show in Finder")
+            }
         }
     }
 
@@ -272,26 +292,30 @@ struct AppDetailView: View {
                 Text("No URI schemes registered")
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
             } else if filteredURISchemes.isEmpty {
                 Text("No matching URI schemes")
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
             } else {
                 ForEach(filteredURISchemes, id: \.self) { scheme in
                     SelectableRow(
                         item: .uriScheme(scheme),
-                        icon: "link",
                         text: "\(scheme)://",
                         isDefault: associations.defaultURISchemes.contains(scheme),
                         isSelected: selectedItems.contains(.uriScheme(scheme)),
                         onToggle: { toggleSelection(.uriScheme(scheme)) }
                     )
                 }
+                .padding(.horizontal, 6)
             }
         } header: {
             sectionHeader(
                 title: "URI Schemes",
-                icon: "link.circle",
+                icon: "link",
                 items: filteredURISchemes.map { SelectableItem.uriScheme($0) }
             )
         }
@@ -303,7 +327,6 @@ struct AppDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 utiGroup(
                     role: "Viewer",
-                    icon: "eye",
                     items: filteredViewerUTIs,
                     defaultItems: associations.defaultViewerUTIs,
                     makeItem: { SelectableItem.viewerUTI($0) }
@@ -311,16 +334,17 @@ struct AppDetailView: View {
 
                 utiGroup(
                     role: "Editor",
-                    icon: "pencil",
                     items: filteredEditorUTIs,
                     defaultItems: associations.defaultEditorUTIs,
                     makeItem: { SelectableItem.editorUTI($0) }
                 )
             }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
         } header: {
             sectionHeader(
-                title: "Uniform Type Identifiers",
-                icon: "doc.circle",
+                title: "File Types",
+                icon: "doc",
                 items: filteredViewerUTIs.map { SelectableItem.viewerUTI($0) }
                     + filteredEditorUTIs.map { SelectableItem.editorUTI($0) }
             )
@@ -330,17 +354,17 @@ struct AppDetailView: View {
 
     private func utiGroup(
         role: String,
-        icon: String,
         items: [String],
         defaultItems: Set<String>,
         makeItem: @escaping (String) -> SelectableItem
     ) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Label(role, systemImage: icon)
+                Text(role)
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundStyle(.secondary)
+                    .padding(.leading, 8)
 
                 Spacer()
 
@@ -353,20 +377,22 @@ struct AppDetailView: View {
                     .buttonStyle(.borderless)
                     .font(.caption)
 
-                    Button("Deselect") {
+                    Button("Deselect All") {
                         for uti in items {
                             selectedItems.remove(makeItem(uti))
                         }
                     }
                     .buttonStyle(.borderless)
                     .font(.caption)
+                    .padding(.trailing, 8)
                 }
             }
 
             if items.isEmpty {
                 Text("None")
                     .foregroundStyle(.tertiary)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
             } else {
                 ForEach(items, id: \.self) { uti in
                     SelectableRow(
@@ -404,8 +430,10 @@ struct AppDetailView: View {
                 }
                 .buttonStyle(.borderless)
                 .font(.caption)
+                .padding(.trailing, 15)
             }
         }
+        .padding(.leading, 15)
     }
 
     private var selectionToolbar: some View {
@@ -431,33 +459,9 @@ struct AppDetailView: View {
             .buttonStyle(.luminare)
             .fixedSize()
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 20)
         .padding(.vertical, 8)
         .background(Color.black.opacity(0.25))
-    }
-
-    private var appPathFooter: some View {
-        HStack {
-            if let path = app.path {
-                Text(path.path)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-
-                Spacer()
-
-                Button {
-                    NSWorkspace.shared.selectFile(
-                        nil, inFileViewerRootedAtPath: path.path)
-                } label: {
-                    Image(systemName: "magnifyingglass.circle")
-                        .font(.title3)
-                }
-                .buttonStyle(.luminareCompact)
-                .help("Show in Finder")
-            }
-        }
     }
 
     private func toggleSelection(_ item: SelectableItem) {
@@ -472,7 +476,6 @@ struct AppDetailView: View {
 // MARK: - Selectable Row
 struct SelectableRow: View {
     let item: SelectableItem
-    var icon: String? = nil
     let text: String
     var isDefault: Bool = false
     let isSelected: Bool
@@ -480,11 +483,7 @@ struct SelectableRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
-                .frame(width: 18)
-
-            Image(systemName: isDefault ? "checkmark.square.fill" : "square")
+            Image(systemName: isDefault ? "checkmark.circle" : "circle")
                 .foregroundStyle(
                     isDefault ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.quaternary)
                 )
@@ -493,19 +492,19 @@ struct SelectableRow: View {
                     isDefault
                         ? "This app is the default handler" : "This app is not the default handler")
 
-            if let icon {
-                Image(systemName: icon)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 18)
-            }
-
             Text(text)
                 .font(.system(.body, design: .monospaced))
 
             Spacer(minLength: 0)
+
+            Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                .foregroundStyle(
+                    isSelected ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary)
+                )
+                .frame(width: 18)
         }
-        .padding(.vertical, 3)
-        .padding(.horizontal, 6)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
         .contentShape(Rectangle())
         .hoverRowHighlight()
         .onTapGesture { onToggle() }

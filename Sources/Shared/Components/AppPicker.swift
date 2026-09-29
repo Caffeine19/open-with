@@ -10,15 +10,27 @@ enum AppChoice: Hashable {
 
 /// A Luminare-styled popup for choosing an application handler.
 struct AppMenuPicker: View {
+    /// Approximate horizontal chrome around the label: icon column (14),
+    /// spacing, trailing chevron and popup padding.
+    static let chromeWidth: CGFloat = 56
+
     let apps: [AppInfo]
     var allowsNone: Bool = false
+    /// Fixed column width. When set, the popup button and every menu row
+    /// share the same width so that pickers align across rows.
+    var width: CGFloat? = nil
     let selection: AppInfo?
     var onCommit: (AppInfo?) -> Void = { _ in }
+
+    private var textWidth: CGFloat? {
+        width.map { $0 - Self.chromeWidth }
+    }
 
     var body: some View {
         if apps.isEmpty {
             Text("No apps available")
                 .foregroundStyle(.tertiary)
+                .frame(width: width, alignment: .leading)
         } else {
             LuminareCompactPicker(
                 selection: Binding(
@@ -32,28 +44,57 @@ struct AppMenuPicker: View {
                 )
             ) {
                 if allowsNone {
-                    Text("None")
+                    AppChoiceLabel(title: "None", textWidth: textWidth)
                         .tag(AppChoice.none)
                 }
                 ForEach(apps) { app in
-                    AppChoiceLabel(app: app)
+                    AppChoiceLabel(app: app, textWidth: textWidth)
                         .tag(AppChoice.app(app))
                 }
             }
             .luminareCompactPickerStyle(.menu)
-            .frame(minWidth: 130, alignment: .trailing)
+            .frame(
+                minWidth: width ?? 130,
+                maxWidth: width,
+                alignment: width == nil ? .trailing : .leading
+            )
         }
     }
 }
 
 /// Icon + name shown inside app menu pickers.
 struct AppChoiceLabel: View {
-    let app: AppInfo
+    var icon: NSImage? = nil
+    let title: String
+    /// When set, the name column has a fixed width (truncated if needed) so
+    /// that every popup button in a column ends up the same width.
+    var textWidth: CGFloat? = nil
+
+    init(app: AppInfo, textWidth: CGFloat? = nil) {
+        self.icon = app.icon
+        self.title = app.name
+        self.textWidth = textWidth
+    }
+
+    init(title: String, textWidth: CGFloat? = nil) {
+        self.title = title
+        self.textWidth = textWidth
+    }
 
     var body: some View {
         HStack(spacing: 6) {
-            Image(nsImage: app.icon.resized(to: NSSize(width: 14, height: 14)))
-            Text(app.name)
+            if let icon {
+                Image(nsImage: icon.resized(to: NSSize(width: 14, height: 14)))
+            } else if textWidth != nil {
+                // Reserve the icon column so "None" aligns with app rows.
+                Color.clear
+                    .frame(width: 14, height: 14)
+            }
+
+            Text(title)
+                .lineLimit(textWidth == nil ? nil : 1)
+                .truncationMode(.middle)
+                .frame(width: textWidth, alignment: .leading)
         }
     }
 }

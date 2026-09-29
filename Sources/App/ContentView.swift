@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selection: Category = .internet
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.luminareTitleBarHeight) private var titleBarHeight
 
     var body: some View {
@@ -28,9 +29,14 @@ struct ContentView: View {
             }
             .luminarePaneLayout(.none)
         }
-        .frame(minWidth: 880, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
+        .frame(minWidth: 920, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
         .ignoresSafeArea()
         .luminareBackground()
+        .background {
+            WindowBackgroundTint(opacity: colorScheme == .dark ? 0.3 : 0)
+                .id(selection)
+                .allowsHitTesting(false)
+        }
         .background {
             keyboardShortcutButtons
         }

@@ -94,6 +94,7 @@ struct FileTypeRow: View {
                         .foregroundStyle(.tertiary)
                 }
             }
+            .layoutPriority(1)
 
             Spacer()
 
@@ -122,6 +123,9 @@ struct FileTypeRow: View {
 }
 
 struct RolePicker: View {
+    /// Fixed picker column width so viewer/editor columns align across rows.
+    static let pickerWidth: CGFloat = 220
+
     let role: String
     let selectedApp: AppInfo?
     let availableApps: [AppInfo]
@@ -137,6 +141,7 @@ struct RolePicker: View {
             AppMenuPicker(
                 apps: availableApps,
                 allowsNone: true,
+                width: Self.pickerWidth,
                 selection: selectedApp,
                 onCommit: { app in
                     if let app {
