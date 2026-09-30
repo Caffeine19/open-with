@@ -2,14 +2,14 @@ import Luminare
 import SwiftUI
 
 struct ContentView: View {
-    @State private var selection: Category = .internet
+    @ObservedObject private var router = AppRouter.shared
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.luminareTitleBarHeight) private var titleBarHeight
 
     var body: some View {
         LuminareDividedStack {
             LuminareSidebar {
-                LuminareSidebarSection(selection: $selection, items: Category.allCases)
+                LuminareSidebarSection(selection: $router.selection, items: Category.allCases)
             }
             .frame(width: 180)
             .padding(.top, titleBarHeight)
@@ -17,11 +17,11 @@ struct ContentView: View {
             .border(.clear, width: 0)
 
             LuminarePane {
-                selection.view()
+                router.selection.view()
             } header: {
                 HStack {
-                    selection.decoratedImageView
-                    Text(selection.title)
+                    router.selection.decoratedImageView
+                    Text(router.selection.title)
                         .font(.title2)
                     Spacer()
                 }
@@ -34,28 +34,9 @@ struct ContentView: View {
         .luminareBackground()
         .background {
             WindowBackgroundTint(opacity: colorScheme == .dark ? 0.3 : 0)
-                .id(selection)
+                .id(router.selection)
                 .allowsHitTesting(false)
         }
-        .background {
-            keyboardShortcutButtons
-        }
-    }
-
-    /// Hidden buttons binding ⌘1–⌘4 to the sidebar tabs.
-    private var keyboardShortcutButtons: some View {
-        Group {
-            Button("") { selection = .internet }
-                .keyboardShortcut("1", modifiers: .command)
-            Button("") { selection = .uriSchemes }
-                .keyboardShortcut("2", modifiers: .command)
-            Button("") { selection = .fileTypes }
-                .keyboardShortcut("3", modifiers: .command)
-            Button("") { selection = .applications }
-                .keyboardShortcut("4", modifiers: .command)
-        }
-        .opacity(0)
-        .frame(width: 0, height: 0)
     }
 }
 

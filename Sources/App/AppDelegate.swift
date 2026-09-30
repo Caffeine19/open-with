@@ -1,7 +1,7 @@
 import AppKit
 import Luminare
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
 
@@ -71,6 +71,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 title: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
         editMenuItem.submenu = editMenu
 
+        // View menu — switches the sidebar tab with ⌘1–⌘4
+        let viewMenuItem = NSMenuItem()
+        mainMenu.addItem(viewMenuItem)
+        let viewMenu = NSMenu(title: "View")
+        viewMenu.delegate = self
+        for (index, category) in Category.allCases.enumerated() {
+            let item = NSMenuItem(
+                title: category.title,
+                action: #selector(switchCategory(_:)),
+                keyEquivalent: String(index + 1))
+            item.target = self
+            item.representedObject = category.rawValue
+            viewMenu.addItem(item)
+        }
+        viewMenuItem.submenu = viewMenu
+
         // Window menu
         let windowMenuItem = NSMenuItem()
         mainMenu.addItem(windowMenuItem)
@@ -88,6 +104,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.windowsMenu = windowMenu
 
         NSApp.mainMenu = mainMenu
+    }
+
+    /// Handles View menu items (⌘1–⌘4) by switching the sidebar tab.
+    @MainActor
+    @objc private func switchCategory(_ sender: NSMenuItem) {
+        guard let rawValue = sender.representedObject as? String,
+            let category = Category(rawValue: rawValue)
+        else { return }
+        AppRouter.shared.selection = category
+    }
+
+    // MARK: - NSMenuDelegate
+
+    /// Re-checks the View menu's current tab each time the menu opens,
+    /// so sidebar clicks are reflected without extra wiring.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard menu.title == "View" else { return }
+        let current = AppRouter.shared.selection
+        for item in menu.items {
+            guard let rawValue = item.representedObject as? String else { continue }
+            item.state = Category(rawValue: rawValue) == current ? .on : .off
+        }
     }
 }
 

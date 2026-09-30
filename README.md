@@ -9,6 +9,11 @@ A modern macOS SwiftUI application for managing default applications for URL sch
 - **File Types**: Manage default applications for file types (UTIs)
 - **Applications**: Browse all installed applications and their associations
 
+### Keyboard Shortcuts
+
+- **⌘1–⌘4**: Switch between Internet / URI Schemes / File Types / Applications (View menu)
+- **⌘F**: Focus the search field in the current view
+
 ## Requirements
 
 - macOS 13.0+
