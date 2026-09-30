@@ -7,3 +7,6 @@
 # Build & packaging output
 OpenWith.app/
 dist/
+
+# Apple Shit
+.DS_Store
