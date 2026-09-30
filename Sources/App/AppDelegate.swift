@@ -96,10 +96,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 title: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)),
                 keyEquivalent: "m"))
         windowMenu.addItem(
-            NSMenuItem(title: "Zoom", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: ""))
+            NSMenuItem(
+                title: "Zoom", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: ""))
         windowMenu.addItem(.separator())
         windowMenu.addItem(
-            NSMenuItem(title: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w"))
+            NSMenuItem(
+                title: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w"))
         windowMenuItem.submenu = windowMenu
         NSApp.windowsMenu = windowMenu
 
